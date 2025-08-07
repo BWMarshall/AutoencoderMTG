@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
-import os
+
 
 data = []
 page = 1
@@ -43,7 +43,6 @@ while page < 488:
 
 df = pd.DataFrame(data)
 print(df.head())
-os.makedirs("data", exist_ok=True)
 df.to_json('./data/output.json', orient='records', indent=4)
 
 

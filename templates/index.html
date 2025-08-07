@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MTG Card Recommendations</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        
+        .search-container {
+            position: relative;
+            margin-bottom: 30px;
+        }
+        
+        #search-input {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+        }
+        
+        #search-input:focus {
+            border-color: #4CAF50;
+            outline: none;
+        }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .slider-label {
+            font-weight: bold;
+            color: #333;
+            white-space: nowrap;
+        }
+        
+        #recommendations-slider {
+            flex-grow: 1;
+            height: 6px;
+            border-radius: 3px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        #recommendations-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4CAF50;
+            cursor: pointer;
+        }
+        
+        #recommendations-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4CAF50;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .slider-value {
+            background-color: #4CAF50;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-weight: bold;
+            min-width: 30px;
+            text-align: center;
+        }
+        
+        .suggestions {
+            position: absolute;
+            top: 50px;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .suggestion-item {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .suggestion-item:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+        
+        .results {
+            display: none;
+        }
+        
+        .selected-card {
+            background-color: #e8f5e8;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #4CAF50;
+        }
+        
+        .recommendations-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .recommendations-count {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .recommendations-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .recommendation-item {
+            background-color: #f9f9f9;
+            margin-bottom: 10px;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .recommendation-rank {
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+        
+        .recommendation-name {
+            flex-grow: 1;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .recommendation-distance {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        .error {
+            background-color: #ffe6e6;
+            color: #d00;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #fcc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>MTG Card Recommendations</h1>
+        
+        <div class="search-container">
+            <input type="text" id="search-input" placeholder="Search for a Magic: The Gathering card...">
+            <div class="slider-container">
+                <label for="recommendations-slider" class="slider-label">Number of recommendations:</label>
+                <input type="range" id="recommendations-slider" min="1" max="50" value="10">
+                <span id="slider-value" class="slider-value">10</span>
+            </div>
+            <div id="suggestions" class="suggestions"></div>
+        </div>
+        
+        <div id="results" class="results">
+            <div id="selected-card" class="selected-card"></div>
+            <div class="recommendations-header">
+                <h3>Recommended Cards:</h3>
+                <span id="recommendations-count" class="recommendations-count"></span>
+            </div>
+            <ul id="recommendations-list" class="recommendations-list"></ul>
+        </div>
+        
+        <div id="loading" class="loading" style="display: none;">
+            Loading recommendations...
+        </div>
+        
+        <div id="error" class="error" style="display: none;"></div>
+    </div>
+
+    <script>
+        const searchInput = document.getElementById('search-input');
+        const suggestionsDiv = document.getElementById('suggestions');
+        const resultsDiv = document.getElementById('results');
+        const selectedCardDiv = document.getElementById('selected-card');
+        const recommendationsList = document.getElementById('recommendations-list');
+        const recommendationsCount = document.getElementById('recommendations-count');
+        const loadingDiv = document.getElementById('loading');
+        const errorDiv = document.getElementById('error');
+        const slider = document.getElementById('recommendations-slider');
+        const sliderValue = document.getElementById('slider-value');
+        
+        let searchTimeout;
+        let currentCard = null;
+        
+        // Update slider value display
+        slider.addEventListener('input', function() {
+            sliderValue.textContent = this.value;
+        });
+        
+        // Update recommendations when slider changes (if a card is selected)
+        slider.addEventListener('change', function() {
+            if (currentCard) {
+                getRecommendations(currentCard);
+            }
+        });
+        
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            const query = this.value.trim();
+            
+            if (query.length < 2) {
+                suggestionsDiv.style.display = 'none';
+                return;
+            }
+            
+            searchTimeout = setTimeout(() => {
+                fetch(`/search?q=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(suggestions => {
+                        displaySuggestions(suggestions);
+                    })
+                    .catch(error => {
+                        console.error('Search error:', error);
+                    });
+            }, 300);
+        });
+        
+        function displaySuggestions(suggestions) {
+            suggestionsDiv.innerHTML = '';
+            
+            if (suggestions.length === 0) {
+                suggestionsDiv.style.display = 'none';
+                return;
+            }
+            
+            suggestions.forEach(suggestion => {
+                const div = document.createElement('div');
+                div.className = 'suggestion-item';
+                div.textContent = suggestion;
+                div.addEventListener('click', () => selectCard(suggestion));
+                suggestionsDiv.appendChild(div);
+            });
+            
+            suggestionsDiv.style.display = 'block';
+        }
+        
+        function selectCard(cardName) {
+            searchInput.value = cardName;
+            suggestionsDiv.style.display = 'none';
+            currentCard = cardName;
+            getRecommendations(cardName);
+        }
+        
+        function getRecommendations(cardName) {
+            const numRecommendations = slider.value;
+            
+            loadingDiv.style.display = 'block';
+            resultsDiv.style.display = 'none';
+            errorDiv.style.display = 'none';
+            
+            fetch(`/recommendations?card=${encodeURIComponent(cardName)}&n=${numRecommendations}`)
+                .then(response => response.json())
+                .then(data => {
+                    loadingDiv.style.display = 'none';
+                    
+                    if (data.error) {
+                        showError(data.error);
+                        return;
+                    }
+                    
+                    displayRecommendations(data);
+                })
+                .catch(error => {
+                    loadingDiv.style.display = 'none';
+                    showError('An error occurred while fetching recommendations.');
+                    console.error('Recommendations error:', error);
+                });
+        }
+        
+        function displayRecommendations(data) {
+            selectedCardDiv.innerHTML = `<strong>Selected Card:</strong> ${data.card}`;
+            recommendationsCount.textContent = `Showing ${data.recommendations.length} recommendations`;
+            
+            recommendationsList.innerHTML = '';
+            data.recommendations.forEach(rec => {
+                const li = document.createElement('li');
+                li.className = 'recommendation-item';
+                li.innerHTML = `
+                    <div class="recommendation-rank">${rec.rank}</div>
+                    <div class="recommendation-name">${rec.name}</div>
+                    <div class="recommendation-distance">Distance: ${rec.distance.toFixed(3)}</div>
+                `;
+                recommendationsList.appendChild(li);
+            });
+            
+            resultsDiv.style.display = 'block';
+        }
+        
+        function showError(message) {
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            currentCard = null;
+        }
+        
+        // Hide suggestions when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!searchInput.contains(e.target) && !suggestionsDiv.contains(e.target)) {
+                suggestionsDiv.style.display = 'none';
+            }
+        });
+        
+        // Handle Enter key in search input
+        searchInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                const firstSuggestion = suggestionsDiv.querySelector('.suggestion-item');
+                if (firstSuggestion) {
+                    selectCard(firstSuggestion.textContent);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
