@@ -7,7 +7,7 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
             padding: 20px;
             background-color: #f5f5f5;
@@ -41,50 +41,19 @@
             margin-bottom: 15px;
         }
         
-        #search-input:focus {
-            border-color: #4CAF50;
-            outline: none;
-        }
-        
         .slider-container {
             display: flex;
             align-items: center;
             gap: 15px;
-            margin-top: 15px;
         }
         
         .slider-label {
             font-weight: bold;
-            color: #333;
             white-space: nowrap;
         }
         
         #recommendations-slider {
             flex-grow: 1;
-            height: 6px;
-            border-radius: 3px;
-            background: #ddd;
-            outline: none;
-            -webkit-appearance: none;
-        }
-        
-        #recommendations-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: #4CAF50;
-            cursor: pointer;
-        }
-        
-        #recommendations-slider::-moz-range-thumb {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: #4CAF50;
-            cursor: pointer;
-            border: none;
         }
         
         .slider-value {
@@ -93,8 +62,6 @@
             padding: 5px 10px;
             border-radius: 15px;
             font-weight: bold;
-            min-width: 30px;
-            text-align: center;
         }
         
         .suggestions {
@@ -122,72 +89,49 @@
             background-color: #f0f0f0;
         }
         
-        .suggestion-item:last-child {
-            border-bottom: none;
-        }
-        
         .results {
             display: none;
         }
         
         .selected-card {
-            background-color: #e8f5e8;
-            padding: 15px;
-            border-radius: 5px;
+            text-align: center;
             margin-bottom: 20px;
-            border-left: 4px solid #4CAF50;
         }
         
-        .recommendations-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
+        .selected-card img {
+            max-width: 200px;
+            border-radius: 8px;
         }
         
-        .recommendations-count {
-            color: #666;
-            font-size: 0.9em;
+        .recommendations-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
         }
         
-        .recommendations-list {
-            list-style: none;
-            padding: 0;
+        .card-item {
+            background-color: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-align: center;
+            padding: 10px;
         }
         
-        .recommendation-item {
-            background-color: #f9f9f9;
-            margin-bottom: 10px;
-            padding: 15px;
+        .card-item img {
+            width: 100%;
             border-radius: 5px;
-            border: 1px solid #ddd;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            transition: transform 0.2s ease;
         }
         
-        .recommendation-rank {
-            background-color: #4CAF50;
-            color: white;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            margin-right: 15px;
+        .card-item img:hover {
+            transform: scale(1.05);
         }
         
-        .recommendation-name {
-            flex-grow: 1;
-            font-weight: bold;
-            color: #333;
-        }
-        
-        .recommendation-distance {
-            color: #666;
-            font-size: 0.9em;
+        .card-distance {
+            font-size: 0.85em;
+            color: #555;
+            margin-top: 5px;
         }
         
         .loading {
@@ -225,7 +169,7 @@
                 <h3>Recommended Cards:</h3>
                 <span id="recommendations-count" class="recommendations-count"></span>
             </div>
-            <ul id="recommendations-list" class="recommendations-list"></ul>
+            <ul id="recommendations-list" class="recommendations-grid"></ul>
         </div>
         
         <div id="loading" class="loading" style="display: none;">
@@ -250,12 +194,10 @@
         let searchTimeout;
         let currentCard = null;
         
-        // Update slider value display
         slider.addEventListener('input', function() {
             sliderValue.textContent = this.value;
         });
         
-        // Update recommendations when slider changes (if a card is selected)
         slider.addEventListener('change', function() {
             if (currentCard) {
                 getRecommendations(currentCard);
@@ -336,17 +278,21 @@
         }
         
         function displayRecommendations(data) {
-            selectedCardDiv.innerHTML = `<strong>Selected Card:</strong> ${data.card}`;
+            selectedCardDiv.innerHTML = `
+                <strong>Selected Card:</strong><br>
+                <img src="${data.card_img}" alt="${data.card}">
+                <div>${data.card}</div>
+            `;
+            
             recommendationsCount.textContent = `Showing ${data.recommendations.length} recommendations`;
             
             recommendationsList.innerHTML = '';
             data.recommendations.forEach(rec => {
                 const li = document.createElement('li');
-                li.className = 'recommendation-item';
+                li.className = 'card-item';
                 li.innerHTML = `
-                    <div class="recommendation-rank">${rec.rank}</div>
-                    <div class="recommendation-name">${rec.name}</div>
-                    <div class="recommendation-distance">Distance: ${rec.distance.toFixed(3)}</div>
+                    <img src="${rec.img}" alt="${rec.name}">
+                    <div class="card-distance">Distance: ${rec.distance.toFixed(3)}</div>
                 `;
                 recommendationsList.appendChild(li);
             });
@@ -360,14 +306,12 @@
             currentCard = null;
         }
         
-        // Hide suggestions when clicking outside
         document.addEventListener('click', function(e) {
             if (!searchInput.contains(e.target) && !suggestionsDiv.contains(e.target)) {
                 suggestionsDiv.style.display = 'none';
             }
         });
         
-        // Handle Enter key in search input
         searchInput.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
                 const firstSuggestion = suggestionsDiv.querySelector('.suggestion-item');
